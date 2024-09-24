@@ -122,15 +122,19 @@ class mmi_wildx_sync
 
 		$list = static::callHistory($params);
 		foreach($list as $e) {
-			//var_dump($e);
-			$sql = 'SELECT 1
+			var_dump($e);
+			$sql = 'SELECT ac2.fk_object AS rowid
 				FROM `'.MAIN_DB_PREFIX.'actioncomm_extrafields` ac2
 				WHERE ac2.wildx_id = '.$e['id'];
 			//echo $sql; die();
 			$resql = static::$db->query($sql);
 			if ($resql && static::$db->num_rows($resql)) {
+				$obj = static::$db->fetch_object($resql);
+				$rowid = $obj->rowid;
 				//echo 'DEJA';
-				continue;
+			}
+			else {
+				$rowid = NULL;
 			}
 
 			// FROM
@@ -141,8 +145,7 @@ class mmi_wildx_sync
 					//echo 'INTERNE';
 					continue;
 				}
-				if (! ($fk_soc = static::getSocByTel($ext_number)))
-					continue;
+				$fk_soc = static::getSocByTel($ext_number);
 
 				$userid = array_search($e['from_number'], $numbers);
 			}
@@ -154,38 +157,48 @@ class mmi_wildx_sync
 					//echo 'INTERNE';
 					continue;
 				}
-				if (! ($fk_soc = static::getSocByTel($ext_number)))
-					continue;
+				$fk_soc = static::getSocByTel($ext_number);
 
 				$userid = array_search($e['to_number'], $numbers);
 			}
+			// Unknown
 			else {
 				continue;
 			}
+			
+			if(!isset($users[$userid])) {
+				$users[$userid] = new User(static::$db);
+				$users[$userid]->fetch($userid);
+			}
+
+			$actionComm = new ActionComm(static::$db);
+			if ($rowid)
+				$actionComm->fetch($rowid);
+
+			$actionComm->type_code = 'AC_TEL';
+			$actionComm->label = $label;
+			$actionComm->note_private = $ext_number;
+			$actionComm->authorid = $userid;
+			$actionComm->userownerid = $userid;
+			$actionComm->datep = strtotime($e['start']);
+			$actionComm->datef = strtotime($e['end']);
+			$actionComm->userassigned[] = $userid;
+			$actionComm->percentage = 100;
+			//$actionComm->calling_duration = $e['duration'];
+			//$actionComm->duree = $e['duration'];
 
 			// All is well !
 			if ($fk_soc) {
-				if(!isset($users[$userid])) {
-					$users[$userid] = new User(static::$db);
-					$users[$userid]->fetch($userid);
-				}
-				$actionComm = new ActionComm(static::$db);
-				$actionComm->type_code = 'AC_TEL';
-				$actionComm->label = $label;
-				$actionComm->note_private = $ext_number;
-				$actionComm->authorid = $userid;
-				$actionComm->userownerid = $userid;
-				$actionComm->datep = $e['start'];
-				$actionComm->datef = $e['end'];
-				$actionComm->userassigned[] = $userid;
-				//$actionComm->calling_duration = $e['duration'];
-				$actionComm->duree = $e['duration'];
 				$actionComm->socid = $fk_soc;
-				$actionComm->array_options['options_wildx_id'] = $e['id'];
-				$res = $actionComm->create($users[$userid]);
-				//var_dump($actionComm);
-				//var_dump($res, $actionComm, $actionComm->error); die();
 			}
+
+			$actionComm->array_options['options_wildx_id'] = $e['id'];
+			if ($rowid)
+				$res = $actionComm->update($users[$userid]);
+			else
+				$res = $actionComm->create($users[$userid]);
+			//var_dump($actionComm);
+			//var_dump($res, $actionComm, $actionComm->error); die();
 		}
 	}
 
