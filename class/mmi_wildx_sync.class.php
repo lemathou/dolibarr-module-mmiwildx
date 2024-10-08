@@ -94,6 +94,8 @@ class mmi_wildx_sync
 			$options['ym'] = date('Y-m');
 		$ym_begin = $options['ym'];
 		$ym_end = date('Y-m', strtotime("+1 month", strtotime($ym_begin.'-01 12:00:00')));
+                if (empty($options['start']))
+                        $options['start'] = 0;
 
 		$params = [
 			//'fields'=>'id,start,answer,end,src,from_number,dst,to_number,disposition,lastapp,duration', //'id,start,end,src,dst'
@@ -103,26 +105,33 @@ class mmi_wildx_sync
 					'to'=>$ym_end.'-01 00:00:00'
 				],
 			],
+			'start' => $options['start'],
 		];
 		//var_dump($params); die();
 
 		$users = [];
 		$numbers = [];
-		$sql = 'SELECT u.rowid, u2.tel_internal
+		$sql = 'SELECT u.rowid, u.office_phone AS tel2, u2.tel_internal AS tel, u.dateemployment AS date_begin, u.dateemploymentend AS date_end
 			FROM `'.MAIN_DB_PREFIX.'user` u
 			INNER JOIN `'.MAIN_DB_PREFIX.'user_extrafields` u2 ON u2.fk_object=u.rowid
-			WHERE u2.tel_internal IS NOT NULL AND u2.tel_internal != ""';
+			WHERE u.office_phone != "" OR (u2.tel_internal IS NOT NULL AND u2.tel_internal != "")
+			ORDER BY u.office_phone, u2.tel_internal, u.dateemployment, u.dateemploymentend';
 		//echo $sql;
 		$resql = static::$db->query($sql);
 		if ($resql) {
-			while ($obj = static::$db->fetch_object($resql)) {
-				$numbers[$obj->rowid] = $obj->tel_internal;
+			while ($row = static::$db->fetch_assoc($resql)) {
+				if ($row['tel2']) {
+					$row['tel2'] = '+33'.substr(str_replace(' ', '', $row['tel2']), 1);
+					$numbers[$row['tel2']][] = $row['rowid'];
+				}
+				$numbers[$row['tel']][] = $row['rowid'];
+				$users[$row['rowid']] = $row;
 			}
 		}
 
 		$list = static::callHistory($params);
 		foreach($list as $e) {
-			var_dump($e);
+			//var_dump($e);
 			$sql = 'SELECT ac2.fk_object AS rowid
 				FROM `'.MAIN_DB_PREFIX.'actioncomm_extrafields` ac2
 				WHERE ac2.wildx_id = '.$e['id'];
@@ -138,37 +147,53 @@ class mmi_wildx_sync
 			}
 
 			// FROM
-			if (in_array($e['from_number'], $numbers)) {
+			$userid = NULL;
+			$date = substr($e['start'], 0, 10);
+			if (isset($numbers[$e['from_number']])) {
 				$label = 'Appel téléphonique sortant';
 				$ext_number = $e['to_number'];
-				if (in_array($ext_number, $numbers)) {
+				if (isset($numbers[$ext_number])) {
 					//echo 'INTERNE';
 					continue;
 				}
 				$fk_soc = static::getSocByTel($ext_number);
-
-				$userid = array_search($e['from_number'], $numbers);
+				// Search
+				foreach($numbers[$e['from_number']] as $uid) {
+					$user = $users[$uid];
+					if(!$userid || ((!$user['date_begin'] || $user['date_begin'] <= $date) && (!$user['date_end'] || $date <= $user['date_end']))) {
+						$userid = $uid;
+					}
+				}
 			}
 			// TO
-			elseif (in_array($e['to_number'], $numbers)) {
+			elseif (isset($numbers[$e['to_number']])) {
 				$label = 'Appel téléphonique entrant';
 				$ext_number = $e['from_number'];
-				if (in_array($ext_number, $numbers)) {
+				if (isset($numbers[$ext_number])) {
 					//echo 'INTERNE';
 					continue;
 				}
 				$fk_soc = static::getSocByTel($ext_number);
-
-				$userid = array_search($e['to_number'], $numbers);
+				// Search
+				foreach($numbers[$e['to_number']] as $uid) {
+					$user = $users[$uid];
+					if(!$userid || ((!$user['date_begin'] || $user['date_begin'] <= $date) && (!$user['date_end'] || $date <= $user['date_end']))) {
+						$userid = $uid;
+					}
+				}
 			}
 			// Unknown
 			else {
+				echo '<p>INCONNU : </p>'."\r\n"; var_dump($e);
 				continue;
 			}
 			
-			if(!isset($users[$userid])) {
-				$users[$userid] = new User(static::$db);
-				$users[$userid]->fetch($userid);
+			//var_dump($userid);
+			//continue;
+			
+			if(!isset($users[$userid]['object'])) {
+				$users[$userid]['object'] = new User(static::$db);
+				$users[$userid]['object']->fetch($userid);
 			}
 
 			$actionComm = new ActionComm(static::$db);
@@ -194,9 +219,9 @@ class mmi_wildx_sync
 
 			$actionComm->array_options['options_wildx_id'] = $e['id'];
 			if ($rowid)
-				$res = $actionComm->update($users[$userid]);
+				$res = $actionComm->update($users[$userid]['object']);
 			else
-				$res = $actionComm->create($users[$userid]);
+				$res = $actionComm->create($users[$userid]['object']);
 			//var_dump($actionComm);
 			//var_dump($res, $actionComm, $actionComm->error); die();
 		}

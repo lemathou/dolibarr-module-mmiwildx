@@ -24,6 +24,8 @@ $options = [
 
 if (!empty($_GET['ym']))
 	$options['ym'] = $_GET['ym'];
+if (!empty($_GET['start']))
+        $options['start'] = $_GET['start'];
 //var_dump($_GET, $options); die();
 
 mmi_wildx_sync::sync($options);
