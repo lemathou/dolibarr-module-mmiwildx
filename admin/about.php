@@ -1,6 +1,6 @@
 <?php
 /* Copyright (C) 2004-2017 Laurent Destailleur  <eldy@users.sourceforge.net>
- * Copyright (C) 2024 MOULIN Mathieu <webmaster@sfy-gestion.com>
+ * Copyright (C) 2022-2025 Mathieu Moulin <mathieu@iprospective.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,88 +19,11 @@
 /**
  * \file    mmiwildx/admin/about.php
  * \ingroup mmiwildx
- * \brief   About page of module MMIWildx.
+ * \brief   About page of MMIWildx Module
  */
 
 // Load Dolibarr environment
-$res = 0;
-// Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
-if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
-	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
-}
-// Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
-$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
-while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
-	$i--;
-	$j--;
-}
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
-}
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
-}
-// Try main.inc.php using relative path
-if (!$res && file_exists("../../main.inc.php")) {
-	$res = @include "../../main.inc.php";
-}
-if (!$res && file_exists("../../../main.inc.php")) {
-	$res = @include "../../../main.inc.php";
-}
-if (!$res) {
-	die("Include of main fails");
-}
+require_once '../env.inc.php';
+require_once '../main_load.inc.php';
 
-// Libraries
-require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-require_once '../lib/mmiwildx.lib.php';
-
-// Translations
-$langs->loadLangs(array("errors", "admin", "mmiwildx@mmiwildx"));
-
-// Access control
-if (!$user->admin) {
-	accessforbidden();
-}
-
-// Parameters
-$action = GETPOST('action', 'aZ09');
-$backtopage = GETPOST('backtopage', 'alpha');
-
-
-/*
- * Actions
- */
-
-// None
-
-
-/*
- * View
- */
-
-$form = new Form($db);
-
-$help_url = '';
-$page_name = "MMIWildxAbout";
-
-llxHeader('', $langs->trans($page_name), $help_url, '', 0, 0, '', '', '', 'mod-mmiwildx page-admin_about');
-
-// Subheader
-$linkback = '<a href="'.($backtopage ? $backtopage : DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1').'">'.$langs->trans("BackToModuleList").'</a>';
-
-print load_fiche_titre($langs->trans($page_name), $linkback, 'title_setup');
-
-// Configuration header
-$head = mmiwildxAdminPrepareHead();
-print dol_get_fiche_head($head, 'about', $langs->trans($page_name), 0, 'mmiwildx@mmiwildx');
-
-dol_include_once('/mmiwildx/core/modules/modMMIWildx.class.php');
-$tmpmodule = new modMMIWildx($db);
-print $tmpmodule->getDescLong();
-
-// Page end
-print dol_get_fiche_end();
-llxFooter();
-$db->close();
+require_once('../../mmicommon/admin/mmiabout_1.inc.php');

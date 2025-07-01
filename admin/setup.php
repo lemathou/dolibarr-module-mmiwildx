@@ -1,6 +1,6 @@
 <?php
 /* Copyright (C) 2004-2017 Laurent Destailleur  <eldy@users.sourceforge.net>
- * Copyright (C) 2024 MOULIN Mathieu <mathieu@iprospective.fr>
+ * Copyright (C) 2022-2025 MOULIN Mathieu <mathieu@iprospective.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
  */
 
 /**
- * \file    mmishipping/admin/setup.php
- * \ingroup mmishipping
- * \brief   MMIShipping setup page.
+ * \file    mmiwildx/admin/setup.php
+ * \ingroup mmiwildx
+ * \brief   MMIWildx setup page.
  */
 
 // Load Dolibarr environment
