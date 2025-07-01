@@ -26,7 +26,6 @@ ModuleMMIWildxDesc = Historique des appels, etc.
 # Admin page
 #
 MMIWildxSetup = MMIWildx setup
-Settings = Settings
 MMIWildxSetupPage = MMIWildx setup page
 MMI_WILDX_HOST = Serveur (hostname)
 MMI_WILDX_APP_ID = App ID
@@ -36,7 +35,6 @@ MMI_WILDX_SECRET_KEY = Secret Key
 #
 # About page
 #
-About = About
 MMIWildxAbout = About MMIWildx
 MMIWildxAboutPage = MMIWildx about page
 
